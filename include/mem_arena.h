@@ -1,0 +1,59 @@
+#if !defined( MEM_ARENA_H )
+#define MEM_ARENA_H
+
+#include "common.h"
+
+typedef enum MemArenaResult_t
+{
+   MemArenaResult_Success = 0,
+
+   MemArenaResult_ArenaTooSmall,
+   MemArenaResult_SystemMemoryAllocFailed,
+   MemArenaResult_OutOfMemory,
+   MemArenaResult_MemNotFound,
+
+   MemArenaResult_Count
+}
+MemArenaResult_t;
+
+typedef struct MemArenaBlock_t MemArenaBlock_t;
+typedef struct MemArenaBlock_t
+{
+   // the size of the memory to be allocated, does not include the MemArenaBlock_t struct size
+   u64 size;
+
+   void* mem;
+   b32 dispose;
+
+   MemArenaBlock_t* prev;
+   MemArenaBlock_t* next;
+}
+MemArenaBlock_t;
+
+typedef struct MemArena_t
+{
+   // the entire size of the arena, including the MemArena_t struct
+   u64 size;
+
+   MemArenaBlock_t* firstBlock;
+   MemArenaBlock_t* lastBlock;
+}
+MemArena_t;
+
+#if defined( __cplusplus )
+extern "C" {
+#endif
+
+MemArenaResult_t MemArena_Create( MemArena_t** pArena, u64 size );
+void MemArena_Destroy( MemArena_t** pArena );
+void MemArena_Reset( MemArena_t* arena );
+const char* MemoryArena_GetErrorMessage( MemArenaResult_t result );
+
+MemArenaResult_t MemArena_Alloc( MemArena_t* arena, u8** mem, u64 size );
+MemArenaResult_t MemArena_Free( MemArena_t* arena, u8* mem );
+
+#if defined( __cplusplus )
+}
+#endif
+
+#endif // MEM_ARENA_H
