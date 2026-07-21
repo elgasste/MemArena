@@ -119,7 +119,6 @@ internal b32 MemArena_AllocTryAppend( MemArena_t* arena, void** user, u64 size )
    newBlock->size = size;
    newBlock->dispose = False;
    newBlock->mem = (u8*)newBlock + sizeof( MemArenaBlock_t );
-   newBlock->user = user;
    ( *user ) = newBlock->mem;
 
    return True;
@@ -146,7 +145,6 @@ internal b32 MemArena_AllocTryInsert( MemArena_t* arena, void** user, u64 size )
          newBlock = (MemArenaBlock_t*)insertionPoint;
          newBlock->size = size;
          newBlock->mem = (u8*)newBlock + sizeof( MemArenaBlock_t );
-         newBlock->user = user;
          ( *user ) = newBlock->mem;
          newBlock->prev = prevBlock ? prevBlock : 0;
          newBlock->next = stopBlock ? stopBlock : 0;

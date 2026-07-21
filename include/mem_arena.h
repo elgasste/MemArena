@@ -22,7 +22,6 @@ typedef struct MemArenaBlock_t
    // the size of the memory to be allocated, does not include the MemArenaBlock_t struct size
    u64 size;
 
-   void** user;
    void* mem;
    b32 dispose;
 
