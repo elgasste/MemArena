@@ -22,6 +22,7 @@ typedef struct MemArenaBlock_t
    // the size of the memory to be allocated, does not include the MemArenaBlock_t struct size
    u64 size;
 
+   void** user;
    void* mem;
    b32 dispose;
 
@@ -49,8 +50,8 @@ void MemArena_Destroy( MemArena_t** pArena );
 void MemArena_Reset( MemArena_t* arena );
 const char* MemoryArena_GetErrorMessage( MemArenaResult_t result );
 
-MemArenaResult_t MemArena_Alloc( MemArena_t* arena, u8** mem, u64 size );
-MemArenaResult_t MemArena_Free( MemArena_t* arena, u8* mem );
+MemArenaResult_t MemArena_Alloc( MemArena_t* arena, void** user, u64 size );
+MemArenaResult_t MemArena_Free( MemArena_t* arena, void* mem );
 
 #if defined( __cplusplus )
 }
