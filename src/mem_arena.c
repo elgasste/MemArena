@@ -110,10 +110,12 @@ internal b32 MemArena_AllocTryAppend( MemArena_t* arena, void** user, size_t siz
 {
    size_t freeSize;
    MemArenaBlock_t* newBlock;
+   u8* arenaEnd;
 
+   arenaEnd = (u8*)arena + arena->size;
    freeSize = arena->lastBlock
-      ? ( ( (u8*)arena + arena->size ) - ( (u8*)( arena->lastBlock ) ) ) - sizeof( MemArenaBlock_t ) - arena->lastBlock->size
-      : ( ( (u8*)arena + arena->size ) - (u8*)arena ) - sizeof( MemArena_t );
+      ? ( arenaEnd - ( (u8*)( arena->lastBlock ) ) ) - sizeof( MemArenaBlock_t ) - arena->lastBlock->size
+      : ( arenaEnd - (u8*)arena ) - sizeof( MemArena_t );
 
    if ( freeSize < ( size + sizeof( MemArenaBlock_t ) ) )
    {
