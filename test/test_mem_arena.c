@@ -608,6 +608,56 @@ internal void test_MemArena_TotalUnallocatedSpace_MultipleBlocksIncludesAllEmpty
    MemArena_Destroy( &arena );
 }
 
+internal void test_MemArena_TotalUnusableSpace_NoBlocksAllocatedReturnsZero( void )
+{
+   MEMARENA_TEST_HELPER_DECLARE_ARENA();
+   size_t space;
+
+   MEMARENA_TEST_HELPER_CREATE_ARENA( sizeof( MemArena_t ) + sizeof( MemArenaBlock_t ) + 1 );
+
+   space = MemArena_TotalUnusableSpace( arena );
+   TEST_ASSERT_EQUAL( 0, space );
+}
+
+internal void test_MemArena_TotalUnusableSpace_OneOffsetBlockWithSpaceBeforeBlockIncludesSpace( void )
+{
+   MEMARENA_TEST_HELPER_DECLARE_ARENA();
+   size_t arenaSize, blockSize, space;
+
+   blockSize = 100;
+   arenaSize = sizeof( MemArena_t ) + ( ( sizeof( MemArenaBlock_t ) + blockSize ) * 2 );
+   MEMARENA_TEST_HELPER_CREATE_ARENA( arenaSize );
+
+   arena = MemArenaTestHelper_CreateArenaWithBlockAtOffset( arenaSize, sizeof( MemArena_t ) + sizeof( MemArenaBlock_t ), blockSize );
+   TEST_ASSERT_EQUAL( (u8*)arena + sizeof( MemArena_t ) + sizeof( MemArenaBlock_t ), arena->firstBlock );
+
+   space = MemArena_TotalUnusableSpace( arena );
+   TEST_ASSERT_EQUAL( sizeof( MemArenaBlock_t ), space );
+
+   MemArena_Destroy( &arena );
+}
+
+internal void test_MemArena_TotalUnusableSpace_MultipleUnusableFragmentsReturnsTotalCount( void )
+{
+   MEMARENA_TEST_HELPER_DECLARE_ARENA();
+   size_t arenaSize, blockSize, blockOffset1, blockOffset2, space;
+
+   blockSize = 100;
+   arenaSize = sizeof( MemArena_t ) + ( ( sizeof( MemArenaBlock_t ) + blockSize ) * 2 ) + ( sizeof( MemArenaBlock_t ) * 3 );
+   blockOffset1 = sizeof( MemArena_t ) + sizeof( MemArenaBlock_t );
+   blockOffset2 = blockOffset1 + ( sizeof( MemArenaBlock_t ) * 2 ) + blockSize;
+   MEMARENA_TEST_HELPER_CREATE_ARENA( arenaSize );
+
+   arena = MemArenaTestHelper_CreateArenaWithTwoBlocksAtOffsets( arenaSize, blockOffset1, blockSize, blockOffset2, blockSize );
+   TEST_ASSERT_EQUAL( (u8*)arena + blockOffset1, arena->firstBlock );
+   TEST_ASSERT_EQUAL( (u8*)arena + blockOffset2, arena->lastBlock );
+
+   space = MemArena_TotalUnusableSpace( arena );
+   TEST_ASSERT_EQUAL( sizeof( MemArenaBlock_t ) * 3, space );
+
+   MemArena_Destroy( &arena );
+}
+
 int main( void )
 {
    UNITY_BEGIN();
@@ -646,6 +696,10 @@ int main( void )
    RUN_TEST( test_MemArena_TotalUnallocatedSpace_NoBlocksAllocatedReturnsEntireArena );
    RUN_TEST( test_MemArena_TotalUnallocatedSpace_OneOffsetBlockIncludesSpaceBeforeBlock );
    RUN_TEST( test_MemArena_TotalUnallocatedSpace_MultipleBlocksIncludesAllEmptySpace );
+
+   RUN_TEST( test_MemArena_TotalUnusableSpace_NoBlocksAllocatedReturnsZero );
+   RUN_TEST( test_MemArena_TotalUnusableSpace_OneOffsetBlockWithSpaceBeforeBlockIncludesSpace );
+   RUN_TEST( test_MemArena_TotalUnusableSpace_MultipleUnusableFragmentsReturnsTotalCount );
    
    return UNITY_END();
 }
