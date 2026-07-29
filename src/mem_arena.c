@@ -66,7 +66,6 @@ MemArenaResult_t MemArena_Alloc( MemArena_t* arena, void** user, size_t size )
    return MemArenaResult_OutOfMemory;
 }
 
-// TODO: test this
 MemArenaResult_t MemArena_AllocSubArena( MemArena_t* arena, MemArena_t** subArena, size_t size )
 {
    MemArenaResult_t result;
@@ -98,12 +97,6 @@ MemArenaResult_t MemArena_Free( MemArena_t* arena, void* mem )
    }
 
    return MemArenaResult_MemNotFound;
-}
-
-// TODO: test this
-MemArenaResult_t MemArena_FreeSubArena( MemArena_t* arena, MemArena_t* subArena )
-{
-   return MemArena_Free( arena, subArena );
 }
 
 internal b32 MemArena_AllocTryAppend( MemArena_t* arena, void** user, size_t size )
