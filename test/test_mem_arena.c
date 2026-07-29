@@ -555,6 +555,8 @@ internal void test_MemArena_GetStats_NoBlocksAllocatedReturnsEntireArenaInTotalU
 
    stats = MemArena_GetStats( arena );
    TEST_ASSERT_EQUAL( 1000, stats.totalUnallocatedSpace );
+
+   MemArena_Destroy( &arena );
 }
 
 internal void test_MemArena_GetStats_OneOffsetBlockIncludesSpaceBeforeBlockInTotalUnallocatedSpace( void )
@@ -615,6 +617,60 @@ internal void test_MemArena_GetStats_MultipleBlocksIncludesAllEmptySpaceInTotalU
    MemArena_Destroy( &arena );
 }
 
+internal void test_MemArena_GetStats_NoBlocksAllocatedReturnsZeroForTotalFragmentedSpace( void )
+{
+   MEMARENA_TEST_HELPER_DECLARE_ARENA();
+   MemArenaStats_t stats;
+
+   MEMARENA_TEST_HELPER_CREATE_ARENA( sizeof( MemArena_t ) + sizeof( MemArenaBlock_t ) + 1 );
+
+   stats = MemArena_GetStats( arena );
+   TEST_ASSERT_EQUAL( 0, stats.totalFragmentedSpace );
+
+   MemArena_Destroy( &arena );
+}
+
+internal void test_MemArena_GetStats_OneOffsetBlockWithSpaceBeforeBlockIncludesSpaceInTotalFragmentedSpace( void )
+{
+   MEMARENA_TEST_HELPER_DECLARE_ARENA();
+   size_t arenaSize, blockSize;
+   MemArenaStats_t stats;
+
+   blockSize = 100;
+   arenaSize = sizeof( MemArena_t ) + ( ( sizeof( MemArenaBlock_t ) + blockSize ) * 2 );
+   MEMARENA_TEST_HELPER_CREATE_ARENA( arenaSize );
+
+   arena = MemArenaTestHelper_CreateArenaWithBlockAtOffset( arenaSize, sizeof( MemArena_t ) + sizeof( MemArenaBlock_t ) + 1, blockSize );
+   TEST_ASSERT_EQUAL( (u8*)arena + sizeof( MemArena_t ) + sizeof( MemArenaBlock_t ) + 1, arena->firstBlock );
+
+   stats = MemArena_GetStats( arena );
+   TEST_ASSERT_EQUAL( 1, stats.totalFragmentedSpace );
+
+   MemArena_Destroy( &arena );
+}
+
+internal void test_MemArena_GetStats_MultipleFragmentsReturnsTotalCountForTotalFragmentedSpace( void )
+{
+   MEMARENA_TEST_HELPER_DECLARE_ARENA();
+   size_t arenaSize, blockSize, blockOffset1, blockOffset2;
+   MemArenaStats_t stats;
+
+   blockSize = 100;
+   arenaSize = sizeof( MemArena_t ) + ( ( sizeof( MemArenaBlock_t ) + blockSize ) * 2 ) + ( ( sizeof( MemArenaBlock_t ) + 10 ) * 2 );
+   blockOffset1 = sizeof( MemArena_t ) + sizeof( MemArenaBlock_t ) + 10;
+   blockOffset2 = blockOffset1 + ( sizeof( MemArenaBlock_t ) * 2 ) + blockSize + 10;
+   MEMARENA_TEST_HELPER_CREATE_ARENA( arenaSize );
+
+   arena = MemArenaTestHelper_CreateArenaWithTwoBlocksAtOffsets( arenaSize, blockOffset1, blockSize, blockOffset2, blockSize );
+   TEST_ASSERT_EQUAL( (u8*)arena + blockOffset1, arena->firstBlock );
+   TEST_ASSERT_EQUAL( (u8*)arena + blockOffset2, arena->lastBlock );
+
+   stats = MemArena_GetStats( arena );
+   TEST_ASSERT_EQUAL( 20, stats.totalFragmentedSpace );
+
+   MemArena_Destroy( &arena );
+}
+
 internal void test_MemArena_GetStats_NoBlocksAllocatedReturnsZeroForTotalUnusableSpace( void )
 {
    MEMARENA_TEST_HELPER_DECLARE_ARENA();
@@ -624,6 +680,8 @@ internal void test_MemArena_GetStats_NoBlocksAllocatedReturnsZeroForTotalUnusabl
 
    stats = MemArena_GetStats( arena );
    TEST_ASSERT_EQUAL( 0, stats.totalUnusableSpace );
+
+   MemArena_Destroy( &arena );
 }
 
 internal void test_MemArena_GetStats_OneOffsetBlockWithSpaceBeforeBlockIncludesSpaceInTotalUnusableSpace( void )
@@ -704,6 +762,9 @@ int main( void )
    RUN_TEST( test_MemArena_GetStats_NoBlocksAllocatedReturnsEntireArenaInTotalUnallocatedSpace );
    RUN_TEST( test_MemArena_GetStats_OneOffsetBlockIncludesSpaceBeforeBlockInTotalUnallocatedSpace );
    RUN_TEST( test_MemArena_GetStats_MultipleBlocksIncludesAllEmptySpaceInTotalUnallocatedSpace );
+   RUN_TEST( test_MemArena_GetStats_NoBlocksAllocatedReturnsZeroForTotalFragmentedSpace );
+   RUN_TEST( test_MemArena_GetStats_OneOffsetBlockWithSpaceBeforeBlockIncludesSpaceInTotalFragmentedSpace );
+   RUN_TEST( test_MemArena_GetStats_MultipleFragmentsReturnsTotalCountForTotalFragmentedSpace );
    RUN_TEST( test_MemArena_GetStats_NoBlocksAllocatedReturnsZeroForTotalUnusableSpace );
    RUN_TEST( test_MemArena_GetStats_OneOffsetBlockWithSpaceBeforeBlockIncludesSpaceInTotalUnusableSpace );
    RUN_TEST( test_MemArena_GetStats_MultipleUnusableFragmentsReturnsTotalCountForTotalUnusableSpace );
