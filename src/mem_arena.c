@@ -103,6 +103,7 @@ MemArenaStats_t MemArena_GetStats( MemArena_t* arena )
    MemArenaStats_t stats;
 
    stats.largestAvailableBlock = 0;
+   stats.totalAllocatedSpace = 0;
    stats.totalUnallocatedSpace = 0;
    stats.totalFragmentedSpace = 0;
    stats.totalUnusableSpace = 0;
@@ -136,7 +137,11 @@ MemArenaStats_t MemArena_GetStats( MemArena_t* arena )
          stats.largestAvailableBlock = availableSize;
       }
 
-      if ( !nextBlock )
+      if ( nextBlock )
+      {
+         stats.totalAllocatedSpace += nextBlock->size;
+      }
+      else
       {
          break;
       }

@@ -431,6 +431,39 @@ internal void test_MemArena_AllocSubArena_AllocatesAndInitializesMemArena( void 
    MemArena_Destroy( &arena );
 }
 
+internal void test_MemArena_GetStats_NoBlocksAllocatedReturnsZeroForTotalAllocatedSpace( void )
+{
+   MEMARENA_TEST_HELPER_DECLARE_ARENA();
+   size_t blockSize;
+   MemArenaStats_t stats;
+
+   blockSize = 100;
+   MEMARENA_TEST_HELPER_CREATE_ARENA( sizeof( MemArena_t ) + ( ( sizeof( MemArenaBlock_t ) + blockSize ) * 2 ) );
+
+   stats = MemArena_GetStats( arena );
+   TEST_ASSERT_EQUAL( 0, stats.totalAllocatedSpace );
+
+   MemArena_Destroy( &arena );
+}
+
+internal void test_MemArena_GetStats_BlocksExistReturnsTotalSizeOfAllBlocksForTotalAllocatedSpace( void )
+{
+   MEMARENA_TEST_HELPER_DECLARE_ARENA();
+   u8* mem;
+   size_t blockSize;
+   MemArenaStats_t stats;
+
+   blockSize = 100;
+   MEMARENA_TEST_HELPER_CREATE_ARENA( sizeof( MemArena_t ) + ( ( sizeof( MemArenaBlock_t ) + blockSize ) * 2 ) );
+   MEMARENA_TEST_HELPER_ALLOC( mem, blockSize );
+   MEMARENA_TEST_HELPER_ALLOC( mem, blockSize );
+
+   stats = MemArena_GetStats( arena );
+   TEST_ASSERT_EQUAL( blockSize * 2, stats.totalAllocatedSpace );
+
+   MemArena_Destroy( &arena );
+}
+
 internal void test_MemArena_GetStats_EmptyArenaReturnsCorrectLargestAvailableBlockSize( void )
 {
    MEMARENA_TEST_HELPER_DECLARE_ARENA();
@@ -754,6 +787,8 @@ int main( void )
 
    RUN_TEST( test_MemArena_AllocSubArena_AllocatesAndInitializesMemArena );
 
+   RUN_TEST( test_MemArena_GetStats_NoBlocksAllocatedReturnsZeroForTotalAllocatedSpace );
+   RUN_TEST( test_MemArena_GetStats_BlocksExistReturnsTotalSizeOfAllBlocksForTotalAllocatedSpace );
    RUN_TEST( test_MemArena_GetStats_EmptyArenaReturnsCorrectLargestAvailableBlockSize );
    RUN_TEST( test_MemArena_GetStats_SpaceAvailableBeforeFirstBlockIsCountedInLargestAvailableBlockSize );
    RUN_TEST( test_MemArena_GetStats_SpaceBetweenBlocksIsCountedInLargestAvailableBlockSize );
