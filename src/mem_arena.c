@@ -95,16 +95,50 @@ void MemArena_Free( MemArena_t* arena, void* mem )
       arena->lastBlock = block->prev;
 }
 
+size_t MemArena_LargestAvailableBlockSize( MemArena_t* arena )
+{
+   MemArenaBlock_t* nextBlock;
+   u8 *insertionPoint;
+   size_t freeSize, largest;
+
+   insertionPoint = (u8*)arena + sizeof( MemArena_t );
+   nextBlock = arena->firstBlock;
+   largest = 0;
+
+   while ( 1 )
+   {
+      freeSize = nextBlock
+         ? (u8*)nextBlock - insertionPoint
+         : ( (u8*)arena + arena->size ) - insertionPoint;
+      freeSize = ( freeSize < ( sizeof( MemArenaBlock_t ) + 1 ) )
+         ? 0
+         : freeSize - sizeof( MemArenaBlock_t );
+
+      if ( freeSize > largest )
+      {
+         largest = freeSize;
+      }
+
+      if ( !nextBlock )
+      {
+         break;
+      }
+
+      insertionPoint = (u8*)nextBlock + sizeof( MemArenaBlock_t ) + nextBlock->size;
+      nextBlock = nextBlock->next;
+   }
+
+   return largest;
+}
+
 internal b32 MemArena_AllocTryAppend( MemArena_t* arena, void** user, size_t size )
 {
    size_t freeSize;
    MemArenaBlock_t* newBlock;
-   u8* arenaEnd;
 
-   arenaEnd = (u8*)arena + arena->size;
    freeSize = arena->lastBlock
-      ? arenaEnd - (u8*)( arena->lastBlock ) - sizeof( MemArenaBlock_t ) - arena->lastBlock->size
-      : arenaEnd - (u8*)arena - sizeof( MemArena_t );
+      ? ( (u8*)arena + arena->size ) - ( u8* )( arena->lastBlock ) - sizeof( MemArenaBlock_t ) - arena->lastBlock->size
+      : arena->size - sizeof( MemArena_t );
 
    if ( freeSize < ( size + sizeof( MemArenaBlock_t ) ) )
    {
@@ -136,18 +170,18 @@ internal b32 MemArena_AllocTryAppend( MemArena_t* arena, void** user, size_t siz
 
 internal b32 MemArena_AllocTryInsert( MemArena_t* arena, void** user, size_t size )
 {
-   MemArenaBlock_t *stopBlock, *prevBlock, *newBlock;
+   MemArenaBlock_t *nextBlock, *prevBlock, *newBlock;
    u8 *insertionPoint;
    size_t freeSize;
 
    insertionPoint = (u8*)arena + sizeof( MemArena_t );
-   stopBlock = arena->firstBlock;
+   nextBlock = arena->firstBlock;
    prevBlock = 0;
 
    while ( 1 )
    {
-      freeSize = stopBlock
-         ? (u8*)stopBlock - insertionPoint
+      freeSize = nextBlock
+         ? (u8*)nextBlock - insertionPoint
          : ( (u8*)arena + arena->size ) - insertionPoint;
 
       if ( freeSize >= ( size + sizeof( MemArenaBlock_t ) ) )
@@ -156,8 +190,8 @@ internal b32 MemArena_AllocTryInsert( MemArena_t* arena, void** user, size_t siz
          newBlock->size = size;
          newBlock->mem = (u8*)newBlock + sizeof( MemArenaBlock_t );
          ( *user ) = newBlock->mem;
-         newBlock->prev = prevBlock ? prevBlock : 0;
-         newBlock->next = stopBlock ? stopBlock : 0;
+         newBlock->prev = prevBlock;
+         newBlock->next = nextBlock;
 
          if ( prevBlock )
          {
@@ -168,10 +202,10 @@ internal b32 MemArena_AllocTryInsert( MemArena_t* arena, void** user, size_t siz
          else
             arena->firstBlock = newBlock;
 
-         if ( stopBlock )
+         if ( nextBlock )
          {
-            stopBlock->prev = newBlock;
-            if ( arena->firstBlock == stopBlock )
+            nextBlock->prev = newBlock;
+            if ( arena->firstBlock == nextBlock )
                arena->firstBlock = newBlock;
          }
          else
@@ -180,15 +214,14 @@ internal b32 MemArena_AllocTryInsert( MemArena_t* arena, void** user, size_t siz
          return True;
       }
       
-      if ( stopBlock == 0 )
+      if ( !nextBlock )
       {
          break;
       }
-
       
-      insertionPoint = (u8*)stopBlock + sizeof( MemArenaBlock_t ) + stopBlock->size;
-      prevBlock = stopBlock;
-      stopBlock = stopBlock->next;
+      insertionPoint = (u8*)nextBlock + sizeof( MemArenaBlock_t ) + nextBlock->size;
+      prevBlock = nextBlock;
+      nextBlock = nextBlock->next;
    }
 
    return False;

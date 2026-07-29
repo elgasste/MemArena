@@ -50,6 +50,8 @@ MemArenaResult_t MemArena_Alloc( MemArena_t* arena, void** user, size_t size );
 MemArenaResult_t MemArena_AllocSubArena( MemArena_t* arena, MemArena_t** subArena, size_t size );
 void MemArena_Free( MemArena_t* arena, void* mem );
 
+size_t MemArena_LargestAvailableBlockSize( MemArena_t* arena );
+
 #if defined( __cplusplus )
 }
 #endif
