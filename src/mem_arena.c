@@ -49,7 +49,6 @@ const char* MemoryArena_GetErrorMessage( MemArenaResult_t result )
       case MemArenaResult_ArenaTooSmall: return "requested arena size is too small";
       case MemArenaResult_SystemMemoryAllocFailed: return "system memory allocation failed";
       case MemArenaResult_OutOfMemory: return "arena is out of memory";
-      case MemArenaResult_MemNotFound: return "memory was not found in arena";
 
       default: return "undefined error";
    }
@@ -80,23 +79,20 @@ MemArenaResult_t MemArena_AllocSubArena( MemArena_t* arena, MemArena_t** subAren
    return result;
 }
 
-MemArenaResult_t MemArena_Free( MemArena_t* arena, void* mem )
+void MemArena_Free( MemArena_t* arena, void* mem )
 {
    MemArenaBlock_t* block;
 
-   block = arena->firstBlock;
-   while ( block != 0 )
-   {
-      if ( block->mem == mem )
-      {
-         block->dispose = True;
-         return MemArenaResult_Success;
-      }
+   block = (MemArenaBlock_t*)( (u8*)mem - sizeof( MemArenaBlock_t ) );
 
-      block = block->next;
-   }
-
-   return MemArenaResult_MemNotFound;
+   if ( block->prev )
+      block->prev->next = block->next;
+   if ( block->next )
+      block->next->prev = block->prev;
+   if ( arena->firstBlock == block )
+      arena->firstBlock = block->next;
+   if ( arena->lastBlock == block )
+      arena->lastBlock = block->prev;
 }
 
 internal b32 MemArena_AllocTryAppend( MemArena_t* arena, void** user, size_t size )
@@ -107,8 +103,8 @@ internal b32 MemArena_AllocTryAppend( MemArena_t* arena, void** user, size_t siz
 
    arenaEnd = (u8*)arena + arena->size;
    freeSize = arena->lastBlock
-      ? ( arenaEnd - ( (u8*)( arena->lastBlock ) ) ) - sizeof( MemArenaBlock_t ) - arena->lastBlock->size
-      : ( arenaEnd - (u8*)arena ) - sizeof( MemArena_t );
+      ? arenaEnd - (u8*)( arena->lastBlock ) - sizeof( MemArenaBlock_t ) - arena->lastBlock->size
+      : arenaEnd - (u8*)arena - sizeof( MemArena_t );
 
    if ( freeSize < ( size + sizeof( MemArenaBlock_t ) ) )
    {
@@ -132,7 +128,6 @@ internal b32 MemArena_AllocTryAppend( MemArena_t* arena, void** user, size_t siz
 
    newBlock->next = 0;
    newBlock->size = size;
-   newBlock->dispose = False;
    newBlock->mem = (u8*)newBlock + sizeof( MemArenaBlock_t );
    ( *user ) = newBlock->mem;
 
@@ -190,23 +185,9 @@ internal b32 MemArena_AllocTryInsert( MemArena_t* arena, void** user, size_t siz
          break;
       }
 
-      if ( stopBlock->dispose )
-      {
-         if ( stopBlock->prev )
-            stopBlock->prev->next = stopBlock->next;
-         if ( stopBlock->next )
-            stopBlock->next->prev = stopBlock->prev;
-         if ( arena->firstBlock == stopBlock )
-            arena->firstBlock = stopBlock->next;
-         if ( arena->lastBlock == stopBlock )
-            arena->lastBlock = stopBlock->prev;
-      }
-      else
-      {
-         insertionPoint = (u8*)stopBlock + sizeof( MemArenaBlock_t ) + stopBlock->size;
-         prevBlock = stopBlock;
-      }
-
+      
+      insertionPoint = (u8*)stopBlock + sizeof( MemArenaBlock_t ) + stopBlock->size;
+      prevBlock = stopBlock;
       stopBlock = stopBlock->next;
    }
 
