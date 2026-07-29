@@ -180,6 +180,8 @@ internal void test_MemArena_Alloc_OneImmediateBlockPresentWithSpaceAvailable_All
    TEST_ASSERT_EQUAL( arena->firstBlock->next, arena->lastBlock );
    TEST_ASSERT_EQUAL( arena->lastBlock->prev, arena->firstBlock );
    TEST_ASSERT_NULL( arena->lastBlock->next );
+
+   MemArena_Destroy( &arena );
 }
 
 internal void test_MemArena_Alloc_OneImmediateBlockPresentWithNoSpaceAvailable_DoesNotAllocateBlock( void )
@@ -193,12 +195,16 @@ internal void test_MemArena_Alloc_OneImmediateBlockPresentWithNoSpaceAvailable_D
    TEST_ASSERT_EQUAL( (u8*)arena + sizeof( MemArena_t ), (u8*)( arena->firstBlock ) );
    TEST_ASSERT_EQUAL( arena->firstBlock->mem, mem );
    TEST_ASSERT_EQUAL( arena->lastBlock->mem, mem );
+   TEST_ASSERT_NULL( arena->firstBlock->prev );
+   TEST_ASSERT_NULL( arena->lastBlock->next );
 
    result = MemArena_Alloc( arena, &mem, 10 );
    TEST_ASSERT_EQUAL( MemArenaResult_OutOfMemory, result );
+
+   MemArena_Destroy( &arena );
 }
 
-internal void test_MemArena_Alloc_OneOffsetBlockPresentWithPrecedingSpaceAvailable_AllocatesBlock( void )
+internal void test_MemArena_Alloc_OneOffsetBlockPresentWithPrecedingSpaceAvailable_InsertsBlock( void )
 {
    MEMARENA_TEST_HELPER_DECLARE_ARENA();
    size_t arenaSize, blockSize, blockOffset;
@@ -212,9 +218,16 @@ internal void test_MemArena_Alloc_OneOffsetBlockPresentWithPrecedingSpaceAvailab
    
    MEMARENA_TEST_HELPER_ALLOC( mem, blockSize );
    TEST_ASSERT_EQUAL( (u8*)arena + sizeof( MemArena_t ) + sizeof( MemArenaBlock_t ), mem );
+   TEST_ASSERT_EQUAL( arena->firstBlock->next, arena->lastBlock );
+   TEST_ASSERT_NULL( arena->firstBlock->prev );
+   TEST_ASSERT_EQUAL( arena->lastBlock->prev, arena->firstBlock );
+   TEST_ASSERT_NULL( arena->lastBlock->next );
+   TEST_ASSERT_EQUAL( arena->firstBlock->mem, mem );
+
+   MemArena_Destroy( &arena );
 }
 
-internal void test_MemArena_Alloc_OneOffsetBlockPresentWithAppendSpaceAvailable_AllocatesBlock( void )
+internal void test_MemArena_Alloc_OneOffsetBlockPresentWithAppendSpaceAvailable_AppendsBlock( void )
 {
    MEMARENA_TEST_HELPER_DECLARE_ARENA();
    size_t arenaSize, blockSize, blockOffset;
@@ -228,6 +241,13 @@ internal void test_MemArena_Alloc_OneOffsetBlockPresentWithAppendSpaceAvailable_
 
    MEMARENA_TEST_HELPER_ALLOC( mem, blockSize );
    TEST_ASSERT_EQUAL( (u8*)arena + blockOffset + ( sizeof( MemArenaBlock_t ) + blockSize ) + sizeof( MemArenaBlock_t ), mem);
+   TEST_ASSERT_EQUAL( arena->firstBlock->next, arena->lastBlock );
+   TEST_ASSERT_NULL( arena->firstBlock->prev );
+   TEST_ASSERT_EQUAL( arena->lastBlock->prev, arena->firstBlock );
+   TEST_ASSERT_NULL( arena->lastBlock->next );
+   TEST_ASSERT_EQUAL( arena->lastBlock->mem, mem );
+
+   MemArena_Destroy( &arena );
 }
 
 internal void test_MemArena_Alloc_OneOffsetBlockPresentWithNoSpaceAvailableOnEitherSide_DoesNotAllocateBlock( void )
@@ -245,7 +265,12 @@ internal void test_MemArena_Alloc_OneOffsetBlockPresentWithNoSpaceAvailableOnEit
    mem = 0;
    result = MemArena_Alloc( arena, &mem, blockSize );
    TEST_ASSERT_EQUAL( MemArenaResult_OutOfMemory, result );
+   TEST_ASSERT_EQUAL( arena->firstBlock, arena->lastBlock );
+   TEST_ASSERT_NULL( arena->firstBlock->next );
+   TEST_ASSERT_NULL( arena->firstBlock->prev );
    TEST_ASSERT_NULL( mem );
+
+   MemArena_Destroy( &arena );
 }
 
 internal void test_MemArena_Alloc_OneDisposedOffsetBlockPresentWithNoSpaceAvailableOnEitherSide_DisposesAndAllocatesBlock( void )
@@ -263,7 +288,11 @@ internal void test_MemArena_Alloc_OneDisposedOffsetBlockPresentWithNoSpaceAvaila
 
    MEMARENA_TEST_HELPER_ALLOC( mem, blockSize );
    TEST_ASSERT_EQUAL( (u8*)arena + sizeof( MemArena_t ) + sizeof( MemArenaBlock_t ), mem );
+
+   MemArena_Destroy( &arena );
 }
+
+// TODO: write some tests with two blocks
 
 int main( void )
 {
@@ -284,8 +313,8 @@ int main( void )
    RUN_TEST( test_MemArena_Alloc_NoBlocksAllocatedWithNoSpaceAvailable_DoesNotAllocateBlock );
    RUN_TEST( test_MemArena_Alloc_OneImmediateBlockPresentWithSpaceAvailable_AllocatesBlock );
    RUN_TEST( test_MemArena_Alloc_OneImmediateBlockPresentWithNoSpaceAvailable_DoesNotAllocateBlock );
-   RUN_TEST( test_MemArena_Alloc_OneOffsetBlockPresentWithPrecedingSpaceAvailable_AllocatesBlock );
-   RUN_TEST( test_MemArena_Alloc_OneOffsetBlockPresentWithAppendSpaceAvailable_AllocatesBlock );
+   RUN_TEST( test_MemArena_Alloc_OneOffsetBlockPresentWithPrecedingSpaceAvailable_InsertsBlock );
+   RUN_TEST( test_MemArena_Alloc_OneOffsetBlockPresentWithAppendSpaceAvailable_AppendsBlock );
    RUN_TEST( test_MemArena_Alloc_OneOffsetBlockPresentWithNoSpaceAvailableOnEitherSide_DoesNotAllocateBlock );
    RUN_TEST( test_MemArena_Alloc_OneDisposedOffsetBlockPresentWithNoSpaceAvailableOnEitherSide_DisposesAndAllocatesBlock );
    

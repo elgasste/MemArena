@@ -172,9 +172,22 @@ internal b32 MemArena_AllocTryInsert( MemArena_t* arena, void** user, size_t siz
          newBlock->next = stopBlock ? stopBlock : 0;
 
          if ( prevBlock )
+         {
             prevBlock->next = newBlock;
+            if ( arena->lastBlock == prevBlock )
+               arena->lastBlock = newBlock;
+         }
+         else
+            arena->firstBlock = newBlock;
+
          if ( stopBlock )
+         {
             stopBlock->prev = newBlock;
+            if ( arena->firstBlock == stopBlock )
+               arena->firstBlock = newBlock;
+         }
+         else
+            arena->lastBlock = newBlock;
 
          return True;
       }
