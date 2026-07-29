@@ -7,7 +7,6 @@
 #define global static
 #define local_persist static
 
-#define b32 int32_t
 #define True 1
 #define False 0
 #define TOGGLE_BOOL( b )               b = b ? False : True;
@@ -16,6 +15,7 @@
 
 #define STRLEN_MEDIUM                  256
 
+typedef int32_t b32;
 typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
