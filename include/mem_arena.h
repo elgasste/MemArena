@@ -51,6 +51,7 @@ MemArenaResult_t MemArena_AllocSubArena( MemArena_t* arena, MemArena_t** subAren
 void MemArena_Free( MemArena_t* arena, void* mem );
 
 size_t MemArena_LargestAvailableBlockSize( MemArena_t* arena );
+size_t MemArena_TotalUnallocatedSpace( MemArena_t* arena );
 
 #if defined( __cplusplus )
 }

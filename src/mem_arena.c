@@ -131,6 +131,37 @@ size_t MemArena_LargestAvailableBlockSize( MemArena_t* arena )
    return largest;
 }
 
+size_t MemArena_TotalUnallocatedSpace( MemArena_t* arena )
+{
+   MemArenaBlock_t* nextBlock;
+   u8 *insertionPoint;
+   size_t freeSize, total;
+
+   insertionPoint = (u8*)arena + sizeof( MemArena_t );
+   nextBlock = arena->firstBlock;
+   total = 0;
+
+   while ( 1 )
+   {
+      freeSize = nextBlock
+         ? (u8*)nextBlock - insertionPoint
+         : ( (u8*)arena + arena->size ) - insertionPoint;
+      total += ( freeSize < ( sizeof( MemArenaBlock_t ) + 1 ) )
+         ? 0
+         : freeSize - sizeof( MemArenaBlock_t );
+
+      if ( !nextBlock )
+      {
+         break;
+      }
+
+      insertionPoint = (u8*)nextBlock + sizeof( MemArenaBlock_t ) + nextBlock->size;
+      nextBlock = nextBlock->next;
+   }
+
+   return total;
+}
+
 internal b32 MemArena_AllocTryAppend( MemArena_t* arena, void** user, size_t size )
 {
    size_t freeSize;
