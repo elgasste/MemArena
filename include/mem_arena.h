@@ -37,6 +37,16 @@ typedef struct MemArena_t
 }
 MemArena_t;
 
+typedef struct MemArenaStats_t
+{
+   size_t totalAllocatedSpace;
+   size_t largestAvailableBlock;
+   size_t totalUnallocatedSpace;
+   size_t totalFragmentedSpace;
+   size_t totalUnusableSpace;
+}
+MemArenaStats_t;
+
 #if defined( __cplusplus )
 extern "C" {
 #endif
@@ -49,6 +59,8 @@ const char* MemoryArena_GetErrorMessage( MemArenaResult_t result );
 MemArenaResult_t MemArena_Alloc( MemArena_t* arena, void** user, size_t size );
 MemArenaResult_t MemArena_AllocSubArena( MemArena_t* arena, MemArena_t** subArena, size_t size );
 void MemArena_Free( MemArena_t* arena, void* mem );
+
+MemArenaStats_t MemArena_GetStats( MemArena_t* arena );
 
 #if defined( __cplusplus )
 }
