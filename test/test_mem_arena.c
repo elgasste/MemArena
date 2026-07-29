@@ -431,25 +431,27 @@ internal void test_MemArena_AllocSubArena_AllocatesAndInitializesMemArena( void 
    MemArena_Destroy( &arena );
 }
 
-internal void test_MemArena_LargestAvailableBlockSize_EmptyArenaReturnsCorrectResult( void )
+internal void test_MemArena_GetStats_EmptyArenaReturnsCorrectLargestAvailableBlockSize( void )
 {
    MEMARENA_TEST_HELPER_DECLARE_ARENA();
-   size_t blockSize, largestAvailable;
+   size_t blockSize;
+   MemArenaStats_t stats;
 
    blockSize = 100;
    MEMARENA_TEST_HELPER_CREATE_ARENA( sizeof( MemArena_t ) + ( ( sizeof( MemArenaBlock_t ) + blockSize ) * 2 ) );
 
-   largestAvailable = MemArena_LargestAvailableBlockSize( arena );
-   TEST_ASSERT_EQUAL( ( blockSize * 2 ) + sizeof( MemArenaBlock_t ), largestAvailable );
+   stats = MemArena_GetStats( arena );
+   TEST_ASSERT_EQUAL( ( blockSize * 2 ) + sizeof( MemArenaBlock_t ), stats.largestAvailableBlock );
 
    MemArena_Destroy( &arena );
 }
 
-internal void test_MemArena_LargestAvailableBlockSize_SpaceAvailableBeforeFirstBlockIsCounted( void )
+internal void test_MemArena_GetStats_SpaceAvailableBeforeFirstBlockIsCountedInLargestAvailableBlockSize( void )
 {
    MEMARENA_TEST_HELPER_DECLARE_ARENA();
    u8 *mem1, *mem2;
-   size_t blockSize, largestAvailable;
+   size_t blockSize;
+   MemArenaStats_t stats;
 
    blockSize = 100;
    MEMARENA_TEST_HELPER_CREATE_ARENA( sizeof( MemArena_t ) + ( ( sizeof( MemArenaBlock_t ) + blockSize ) * 2 ) );
@@ -461,17 +463,18 @@ internal void test_MemArena_LargestAvailableBlockSize_SpaceAvailableBeforeFirstB
    TEST_ASSERT_EQUAL( arena->firstBlock, arena->lastBlock );
    TEST_ASSERT_EQUAL( (u8*)arena + sizeof( MemArena_t ) + sizeof( MemArenaBlock_t ) + blockSize, arena->firstBlock );
 
-   largestAvailable = MemArena_LargestAvailableBlockSize( arena );
-   TEST_ASSERT_EQUAL( blockSize, largestAvailable );
+   stats = MemArena_GetStats( arena );
+   TEST_ASSERT_EQUAL( blockSize, stats.largestAvailableBlock );
 
    MemArena_Destroy( &arena );
 }
 
-internal void test_MemArena_LargestAvailableBlockSize_SpaceBetweenBlocksIsCounted( void )
+internal void test_MemArena_GetStats_SpaceBetweenBlocksIsCountedInLargestAvailableBlockSize( void )
 {
    MEMARENA_TEST_HELPER_DECLARE_ARENA();
    u8 *mem1, *mem2, *mem3;
-   size_t blockSize, largestAvailable;
+   size_t blockSize;
+   MemArenaStats_t stats;
 
    blockSize = 100;
    MEMARENA_TEST_HELPER_CREATE_ARENA( sizeof( MemArena_t ) + ( ( sizeof( MemArenaBlock_t ) + blockSize ) * 3 ) );
@@ -484,34 +487,36 @@ internal void test_MemArena_LargestAvailableBlockSize_SpaceBetweenBlocksIsCounte
    TEST_ASSERT_EQUAL( arena->firstBlock->next, arena->lastBlock );
    TEST_ASSERT_EQUAL( (u8*)arena + sizeof( MemArena_t ) + ( ( sizeof( MemArenaBlock_t ) + blockSize ) * 2 ), arena->lastBlock );
 
-   largestAvailable = MemArena_LargestAvailableBlockSize( arena );
-   TEST_ASSERT_EQUAL( blockSize, largestAvailable );
+   stats = MemArena_GetStats( arena );
+   TEST_ASSERT_EQUAL( blockSize, stats.largestAvailableBlock );
 
    MemArena_Destroy( &arena );
 }
 
-internal void test_MemArena_LargestAvailableBlockSize_SpaceAfterLastBlockIsCounted( void )
+internal void test_MemArena_GetStats_SpaceAfterLastBlockIsCountedInLargestAvailableBlockSize( void )
 {
    MEMARENA_TEST_HELPER_DECLARE_ARENA();
    u8* mem;
-   size_t blockSize, largestAvailable;
+   size_t blockSize;
+   MemArenaStats_t stats;
 
    blockSize = 100;
    MEMARENA_TEST_HELPER_CREATE_ARENA( sizeof( MemArena_t ) + ( ( sizeof( MemArenaBlock_t ) + blockSize ) * 2 ) );
    MEMARENA_TEST_HELPER_ALLOC( mem, blockSize );
    TEST_ASSERT_EQUAL( arena->firstBlock, (u8*)arena + sizeof( MemArena_t ) );
 
-   largestAvailable = MemArena_LargestAvailableBlockSize( arena );
-   TEST_ASSERT_EQUAL( blockSize, largestAvailable );
+   stats = MemArena_GetStats( arena );
+   TEST_ASSERT_EQUAL( blockSize, stats.largestAvailableBlock );
 
    MemArena_Destroy( &arena );
 }
 
-internal void test_MemArena_LargestAvailableBlockSize_VaryingSizesFoundReturnsLargest( void )
+internal void test_MemArena_GetStats_VaryingSizesFoundReturnsLargestAvailableBlockSize( void )
 {
    MEMARENA_TEST_HELPER_DECLARE_ARENA();
    u8 *mem1, *mem2, *mem3, *mem4, *mem5;
-   size_t size1, size2, size3, size4, size5, largestAvailable;
+   size_t size1, size2, size3, size4, size5;
+   MemArenaStats_t stats;
 
    size1 = 40;
    size2 = 90;
@@ -535,28 +540,29 @@ internal void test_MemArena_LargestAvailableBlockSize_VaryingSizesFoundReturnsLa
    TEST_ASSERT_EQUAL( size2, arena->firstBlock->size );
    TEST_ASSERT_EQUAL( size4, arena->lastBlock->size );
 
-   largestAvailable = MemArena_LargestAvailableBlockSize( arena );
-   TEST_ASSERT_EQUAL( size3, largestAvailable );
+   stats = MemArena_GetStats( arena );
+   TEST_ASSERT_EQUAL( size3, stats.largestAvailableBlock );
 
    MemArena_Destroy( &arena );
 }
 
-internal void test_MemArena_TotalUnallocatedSpace_NoBlocksAllocatedReturnsEntireArena( void )
+internal void test_MemArena_GetStats_NoBlocksAllocatedReturnsEntireArenaInTotalUnallocatedSpace( void )
 {
    MEMARENA_TEST_HELPER_DECLARE_ARENA();
-   size_t space;
+   MemArenaStats_t stats;
 
    MEMARENA_TEST_HELPER_CREATE_ARENA( sizeof( MemArena_t ) + sizeof( MemArenaBlock_t ) + 1000 );
 
-   space = MemArena_TotalUnallocatedSpace( arena );
-   TEST_ASSERT_EQUAL( 1000, space );
+   stats = MemArena_GetStats( arena );
+   TEST_ASSERT_EQUAL( 1000, stats.totalUnallocatedSpace );
 }
 
-internal void test_MemArena_TotalUnallocatedSpace_OneOffsetBlockIncludesSpaceBeforeBlock( void )
+internal void test_MemArena_GetStats_OneOffsetBlockIncludesSpaceBeforeBlockInTotalUnallocatedSpace( void )
 {
    MEMARENA_TEST_HELPER_DECLARE_ARENA();
    u8 *mem1, *mem2;
-   size_t blockSize, space;
+   size_t blockSize;
+   MemArenaStats_t stats;
 
    blockSize = 100;
    MEMARENA_TEST_HELPER_CREATE_ARENA( sizeof( MemArena_t ) + ( ( sizeof( MemArenaBlock_t ) + blockSize ) * 3 ) );
@@ -568,17 +574,18 @@ internal void test_MemArena_TotalUnallocatedSpace_OneOffsetBlockIncludesSpaceBef
    TEST_ASSERT_EQUAL( arena->firstBlock, arena->lastBlock );
    TEST_ASSERT_EQUAL( (u8*)arena + sizeof( MemArena_t ) + sizeof( MemArenaBlock_t ) + blockSize, arena->firstBlock );
 
-   space = MemArena_TotalUnallocatedSpace( arena );
-   TEST_ASSERT_EQUAL( blockSize * 2, space );
+   stats = MemArena_GetStats( arena );
+   TEST_ASSERT_EQUAL( blockSize * 2, stats.totalUnallocatedSpace );
 
    MemArena_Destroy( &arena );
 }
 
-internal void test_MemArena_TotalUnallocatedSpace_MultipleBlocksIncludesAllEmptySpace( void )
+internal void test_MemArena_GetStats_MultipleBlocksIncludesAllEmptySpaceInTotalUnallocatedSpace( void )
 {
    MEMARENA_TEST_HELPER_DECLARE_ARENA();
    u8 *mem1, *mem2, *mem3, *mem4, *mem5;
-   size_t size1, size2, size3, size4, size5, space;
+   size_t size1, size2, size3, size4, size5;
+   MemArenaStats_t stats;
 
    size1 = 40;
    size2 = 90;
@@ -602,27 +609,28 @@ internal void test_MemArena_TotalUnallocatedSpace_MultipleBlocksIncludesAllEmpty
    TEST_ASSERT_EQUAL( size2, arena->firstBlock->size );
    TEST_ASSERT_EQUAL( size4, arena->lastBlock->size );
 
-   space = MemArena_TotalUnallocatedSpace( arena );
-   TEST_ASSERT_EQUAL( size1 + size3 + size5, space );
+   stats = MemArena_GetStats( arena );
+   TEST_ASSERT_EQUAL( size1 + size3 + size5, stats.totalUnallocatedSpace );
 
    MemArena_Destroy( &arena );
 }
 
-internal void test_MemArena_TotalUnusableSpace_NoBlocksAllocatedReturnsZero( void )
+internal void test_MemArena_GetStats_NoBlocksAllocatedReturnsZeroForTotalUnusableSpace( void )
 {
    MEMARENA_TEST_HELPER_DECLARE_ARENA();
-   size_t space;
+   MemArenaStats_t stats;
 
    MEMARENA_TEST_HELPER_CREATE_ARENA( sizeof( MemArena_t ) + sizeof( MemArenaBlock_t ) + 1 );
 
-   space = MemArena_TotalUnusableSpace( arena );
-   TEST_ASSERT_EQUAL( 0, space );
+   stats = MemArena_GetStats( arena );
+   TEST_ASSERT_EQUAL( 0, stats.totalUnusableSpace );
 }
 
-internal void test_MemArena_TotalUnusableSpace_OneOffsetBlockWithSpaceBeforeBlockIncludesSpace( void )
+internal void test_MemArena_GetStats_OneOffsetBlockWithSpaceBeforeBlockIncludesSpaceInTotalUnusableSpace( void )
 {
    MEMARENA_TEST_HELPER_DECLARE_ARENA();
-   size_t arenaSize, blockSize, space;
+   size_t arenaSize, blockSize;
+   MemArenaStats_t stats;
 
    blockSize = 100;
    arenaSize = sizeof( MemArena_t ) + ( ( sizeof( MemArenaBlock_t ) + blockSize ) * 2 );
@@ -631,16 +639,17 @@ internal void test_MemArena_TotalUnusableSpace_OneOffsetBlockWithSpaceBeforeBloc
    arena = MemArenaTestHelper_CreateArenaWithBlockAtOffset( arenaSize, sizeof( MemArena_t ) + sizeof( MemArenaBlock_t ), blockSize );
    TEST_ASSERT_EQUAL( (u8*)arena + sizeof( MemArena_t ) + sizeof( MemArenaBlock_t ), arena->firstBlock );
 
-   space = MemArena_TotalUnusableSpace( arena );
-   TEST_ASSERT_EQUAL( sizeof( MemArenaBlock_t ), space );
+   stats = MemArena_GetStats( arena );
+   TEST_ASSERT_EQUAL( sizeof( MemArenaBlock_t ), stats.totalUnusableSpace );
 
    MemArena_Destroy( &arena );
 }
 
-internal void test_MemArena_TotalUnusableSpace_MultipleUnusableFragmentsReturnsTotalCount( void )
+internal void test_MemArena_GetStats_MultipleUnusableFragmentsReturnsTotalCountForTotalUnusableSpace( void )
 {
    MEMARENA_TEST_HELPER_DECLARE_ARENA();
-   size_t arenaSize, blockSize, blockOffset1, blockOffset2, space;
+   size_t arenaSize, blockSize, blockOffset1, blockOffset2;
+   MemArenaStats_t stats;
 
    blockSize = 100;
    arenaSize = sizeof( MemArena_t ) + ( ( sizeof( MemArenaBlock_t ) + blockSize ) * 2 ) + ( sizeof( MemArenaBlock_t ) * 3 );
@@ -652,8 +661,8 @@ internal void test_MemArena_TotalUnusableSpace_MultipleUnusableFragmentsReturnsT
    TEST_ASSERT_EQUAL( (u8*)arena + blockOffset1, arena->firstBlock );
    TEST_ASSERT_EQUAL( (u8*)arena + blockOffset2, arena->lastBlock );
 
-   space = MemArena_TotalUnusableSpace( arena );
-   TEST_ASSERT_EQUAL( sizeof( MemArenaBlock_t ) * 3, space );
+   stats = MemArena_GetStats( arena );
+   TEST_ASSERT_EQUAL( sizeof( MemArenaBlock_t ) * 3, stats.totalUnusableSpace );
 
    MemArena_Destroy( &arena );
 }
@@ -687,19 +696,17 @@ int main( void )
 
    RUN_TEST( test_MemArena_AllocSubArena_AllocatesAndInitializesMemArena );
 
-   RUN_TEST( test_MemArena_LargestAvailableBlockSize_EmptyArenaReturnsCorrectResult );
-   RUN_TEST( test_MemArena_LargestAvailableBlockSize_SpaceAvailableBeforeFirstBlockIsCounted );
-   RUN_TEST( test_MemArena_LargestAvailableBlockSize_SpaceBetweenBlocksIsCounted );
-   RUN_TEST( test_MemArena_LargestAvailableBlockSize_SpaceAfterLastBlockIsCounted );
-   RUN_TEST( test_MemArena_LargestAvailableBlockSize_VaryingSizesFoundReturnsLargest );
-
-   RUN_TEST( test_MemArena_TotalUnallocatedSpace_NoBlocksAllocatedReturnsEntireArena );
-   RUN_TEST( test_MemArena_TotalUnallocatedSpace_OneOffsetBlockIncludesSpaceBeforeBlock );
-   RUN_TEST( test_MemArena_TotalUnallocatedSpace_MultipleBlocksIncludesAllEmptySpace );
-
-   RUN_TEST( test_MemArena_TotalUnusableSpace_NoBlocksAllocatedReturnsZero );
-   RUN_TEST( test_MemArena_TotalUnusableSpace_OneOffsetBlockWithSpaceBeforeBlockIncludesSpace );
-   RUN_TEST( test_MemArena_TotalUnusableSpace_MultipleUnusableFragmentsReturnsTotalCount );
+   RUN_TEST( test_MemArena_GetStats_EmptyArenaReturnsCorrectLargestAvailableBlockSize );
+   RUN_TEST( test_MemArena_GetStats_SpaceAvailableBeforeFirstBlockIsCountedInLargestAvailableBlockSize );
+   RUN_TEST( test_MemArena_GetStats_SpaceBetweenBlocksIsCountedInLargestAvailableBlockSize );
+   RUN_TEST( test_MemArena_GetStats_SpaceAfterLastBlockIsCountedInLargestAvailableBlockSize );
+   RUN_TEST( test_MemArena_GetStats_VaryingSizesFoundReturnsLargestAvailableBlockSize );
+   RUN_TEST( test_MemArena_GetStats_NoBlocksAllocatedReturnsEntireArenaInTotalUnallocatedSpace );
+   RUN_TEST( test_MemArena_GetStats_OneOffsetBlockIncludesSpaceBeforeBlockInTotalUnallocatedSpace );
+   RUN_TEST( test_MemArena_GetStats_MultipleBlocksIncludesAllEmptySpaceInTotalUnallocatedSpace );
+   RUN_TEST( test_MemArena_GetStats_NoBlocksAllocatedReturnsZeroForTotalUnusableSpace );
+   RUN_TEST( test_MemArena_GetStats_OneOffsetBlockWithSpaceBeforeBlockIncludesSpaceInTotalUnusableSpace );
+   RUN_TEST( test_MemArena_GetStats_MultipleUnusableFragmentsReturnsTotalCountForTotalUnusableSpace );
    
    return UNITY_END();
 }

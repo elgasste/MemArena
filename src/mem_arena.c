@@ -95,28 +95,36 @@ void MemArena_Free( MemArena_t* arena, void* mem )
       arena->lastBlock = block->prev;
 }
 
-size_t MemArena_LargestAvailableBlockSize( MemArena_t* arena )
+MemArenaStats_t MemArena_GetStats( MemArena_t* arena )
 {
    MemArenaBlock_t* nextBlock;
    u8 *insertionPoint;
-   size_t freeSize, largest;
+   size_t freeSize, smallestBlockSize, availableSize;
+   MemArenaStats_t stats;
 
+   stats.largestAvailableBlock = 0;
+   stats.totalUnallocatedSpace = 0;
+   stats.totalUnusableSpace = 0;
+
+   smallestBlockSize = sizeof( MemArenaBlock_t ) + 1;
    insertionPoint = (u8*)arena + sizeof( MemArena_t );
    nextBlock = arena->firstBlock;
-   largest = 0;
 
    while ( 1 )
    {
       freeSize = nextBlock
          ? (u8*)nextBlock - insertionPoint
          : ( (u8*)arena + arena->size ) - insertionPoint;
-      freeSize = ( freeSize < ( sizeof( MemArenaBlock_t ) + 1 ) )
+      availableSize = ( freeSize < smallestBlockSize )
          ? 0
          : freeSize - sizeof( MemArenaBlock_t );
 
-      if ( freeSize > largest )
+      stats.totalUnallocatedSpace += availableSize;
+      stats.totalUnusableSpace += ( freeSize < smallestBlockSize ) ? freeSize : 0;
+
+      if ( availableSize > stats.largestAvailableBlock )
       {
-         largest = freeSize;
+         stats.largestAvailableBlock = availableSize;
       }
 
       if ( !nextBlock )
@@ -128,67 +136,7 @@ size_t MemArena_LargestAvailableBlockSize( MemArena_t* arena )
       nextBlock = nextBlock->next;
    }
 
-   return largest;
-}
-
-size_t MemArena_TotalUnallocatedSpace( MemArena_t* arena )
-{
-   MemArenaBlock_t* nextBlock;
-   u8 *insertionPoint;
-   size_t freeSize, total;
-
-   insertionPoint = (u8*)arena + sizeof( MemArena_t );
-   nextBlock = arena->firstBlock;
-   total = 0;
-
-   while ( 1 )
-   {
-      freeSize = nextBlock
-         ? (u8*)nextBlock - insertionPoint
-         : ( (u8*)arena + arena->size ) - insertionPoint;
-      total += ( freeSize < ( sizeof( MemArenaBlock_t ) + 1 ) )
-         ? 0
-         : freeSize - sizeof( MemArenaBlock_t );
-
-      if ( !nextBlock )
-      {
-         break;
-      }
-
-      insertionPoint = (u8*)nextBlock + sizeof( MemArenaBlock_t ) + nextBlock->size;
-      nextBlock = nextBlock->next;
-   }
-
-   return total;
-}
-
-size_t MemArena_TotalUnusableSpace( MemArena_t* arena )
-{
-   MemArenaBlock_t* nextBlock;
-   u8 *insertionPoint;
-   size_t freeSize, total;
-
-   insertionPoint = (u8*)arena + sizeof( MemArena_t );
-   nextBlock = arena->firstBlock;
-   total = 0;
-
-   while ( 1 )
-   {
-      freeSize = nextBlock
-         ? (u8*)nextBlock - insertionPoint
-         : ( (u8*)arena + arena->size ) - insertionPoint;
-      total += ( freeSize < ( sizeof( MemArenaBlock_t ) + 1 ) ) ? freeSize : 0;
-
-      if ( !nextBlock )
-      {
-         break;
-      }
-
-      insertionPoint = (u8*)nextBlock + sizeof( MemArenaBlock_t ) + nextBlock->size;
-      nextBlock = nextBlock->next;
-   }
-
-   return total;
+   return stats;
 }
 
 internal b32 MemArena_AllocTryAppend( MemArena_t* arena, void** user, size_t size )
