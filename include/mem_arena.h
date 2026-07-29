@@ -10,7 +10,6 @@ typedef enum MemArenaResult_t
    MemArenaResult_ArenaTooSmall,
    MemArenaResult_SystemMemoryAllocFailed,
    MemArenaResult_OutOfMemory,
-   MemArenaResult_MemNotFound,
 
    MemArenaResult_Count
 }
@@ -23,8 +22,6 @@ typedef struct MemArenaBlock_t
    size_t size;
 
    void* mem;
-   b32 dispose;
-
    MemArenaBlock_t* prev;
    MemArenaBlock_t* next;
 }
@@ -51,7 +48,7 @@ const char* MemoryArena_GetErrorMessage( MemArenaResult_t result );
 
 MemArenaResult_t MemArena_Alloc( MemArena_t* arena, void** user, size_t size );
 MemArenaResult_t MemArena_AllocSubArena( MemArena_t* arena, MemArena_t** subArena, size_t size );
-MemArenaResult_t MemArena_Free( MemArena_t* arena, void* mem );
+void MemArena_Free( MemArena_t* arena, void* mem );
 
 #if defined( __cplusplus )
 }
