@@ -2,10 +2,10 @@
 
 #include "mem_arena.h"
 
-internal b32 MemArena_AllocTryAppend( MemArena_t* arena, void** user, u64 size );
-internal b32 MemArena_AllocTryInsert( MemArena_t* arena, void** user, u64 size );
+internal b32 MemArena_AllocTryAppend( MemArena_t* arena, void** user, size_t size );
+internal b32 MemArena_AllocTryInsert( MemArena_t* arena, void** user, size_t size );
 
-MemArenaResult_t MemArena_Create( MemArena_t** pArena, u64 size )
+MemArenaResult_t MemArena_Create( MemArena_t** pArena, size_t size )
 {
    // there should be enough space for at least one 1-byte block
    if ( size < ( sizeof( MemArena_t ) + sizeof( MemArenaBlock_t ) + 1 ) )
@@ -20,18 +20,17 @@ MemArenaResult_t MemArena_Create( MemArena_t** pArena, u64 size )
    }
 
    ( *pArena )->size = size;
-   ( *pArena )->firstBlock = 0;
-   ( *pArena )->lastBlock = 0;
+   MemArena_Reset( *pArena );
 
    return MemArenaResult_Success;
 }
 
-void MemArena_Destroy( MemArena_t** arena )
+void MemArena_Destroy( MemArena_t** pArena )
 {
-   if ( arena )
+   if ( pArena )
    {
-      free( ( *arena ) );
-      *arena = 0;
+      free( ( *pArena ) );
+      *pArena = 0;
    }
 }
 
@@ -56,7 +55,7 @@ const char* MemoryArena_GetErrorMessage( MemArenaResult_t result )
    }
 }
 
-MemArenaResult_t MemArena_Alloc( MemArena_t* arena, void** user, u64 size )
+MemArenaResult_t MemArena_Alloc( MemArena_t* arena, void** user, size_t size )
 {
    if ( MemArena_AllocTryAppend( arena, user, size ) ||
         MemArena_AllocTryInsert( arena, user, size ) )
@@ -65,6 +64,20 @@ MemArenaResult_t MemArena_Alloc( MemArena_t* arena, void** user, u64 size )
    }
 
    return MemArenaResult_OutOfMemory;
+}
+
+MemArenaResult_t MemArena_AllocSubArena( MemArena_t* arena, MemArena_t** subArena, size_t size )
+{
+   MemArenaResult_t result;
+
+   result = MemArena_Alloc( arena, subArena, size );
+   if ( result == MemArenaResult_Success )
+   {
+      ( *subArena )->size = size;
+      MemArena_Reset( *subArena );
+   }
+
+   return result;
 }
 
 MemArenaResult_t MemArena_Free( MemArena_t* arena, void* mem )
@@ -86,14 +99,16 @@ MemArenaResult_t MemArena_Free( MemArena_t* arena, void* mem )
    return MemArenaResult_MemNotFound;
 }
 
-internal b32 MemArena_AllocTryAppend( MemArena_t* arena, void** user, u64 size )
+internal b32 MemArena_AllocTryAppend( MemArena_t* arena, void** user, size_t size )
 {
-   u64 freeSize;
+   size_t freeSize;
    MemArenaBlock_t* newBlock;
+   u8* arenaEnd;
 
+   arenaEnd = (u8*)arena + arena->size;
    freeSize = arena->lastBlock
-      ? ( ( (u8*)arena + arena->size ) - ( (u8*)( arena->lastBlock ) ) ) - sizeof( MemArenaBlock_t ) - arena->lastBlock->size
-      : ( ( (u8*)arena + arena->size ) - (u8*)arena ) - sizeof( MemArena_t );
+      ? ( arenaEnd - ( (u8*)( arena->lastBlock ) ) ) - sizeof( MemArenaBlock_t ) - arena->lastBlock->size
+      : ( arenaEnd - (u8*)arena ) - sizeof( MemArena_t );
 
    if ( freeSize < ( size + sizeof( MemArenaBlock_t ) ) )
    {
@@ -124,11 +139,11 @@ internal b32 MemArena_AllocTryAppend( MemArena_t* arena, void** user, u64 size )
    return True;
 }
 
-internal b32 MemArena_AllocTryInsert( MemArena_t* arena, void** user, u64 size )
+internal b32 MemArena_AllocTryInsert( MemArena_t* arena, void** user, size_t size )
 {
    MemArenaBlock_t *stopBlock, *prevBlock, *newBlock;
    u8 *insertionPoint;
-   u64 freeSize;
+   size_t freeSize;
 
    insertionPoint = (u8*)arena + sizeof( MemArena_t );
    stopBlock = arena->firstBlock;
@@ -150,9 +165,22 @@ internal b32 MemArena_AllocTryInsert( MemArena_t* arena, void** user, u64 size )
          newBlock->next = stopBlock ? stopBlock : 0;
 
          if ( prevBlock )
+         {
             prevBlock->next = newBlock;
+            if ( arena->lastBlock == prevBlock )
+               arena->lastBlock = newBlock;
+         }
+         else
+            arena->firstBlock = newBlock;
+
          if ( stopBlock )
+         {
             stopBlock->prev = newBlock;
+            if ( arena->firstBlock == stopBlock )
+               arena->firstBlock = newBlock;
+         }
+         else
+            arena->lastBlock = newBlock;
 
          return True;
       }
