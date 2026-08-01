@@ -13,8 +13,6 @@
 
 #define UNUSED_PARAM( x )              (void)x
 
-#define STRLEN_MEDIUM                  256
-
 typedef int32_t b32;
 typedef uint8_t u8;
 typedef uint16_t u16;
