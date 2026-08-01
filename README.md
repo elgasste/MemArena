@@ -12,7 +12,12 @@ This is the easiest option, all you have to do is select "Open a local folder" a
 
 ## VSCode
 
-You'll need to install the C/C++ Extension Pack plug-in for VSCode, as well as some kind of native C compiler, which you'll need to select when running the project for the first time. At that point you should be able to run/debug unit tests by clicking the "Testing" icon and selecting the desired test suite.
+The following extensions will need to be installed:
+
+- Microsoft CMake Tools
+- Microsoft C/C++ Extensions
+
+Once these are installed, you can select a CMake compiler kit by opening the command palette (ctrl + shift + p in Windows) and typing `CMake: Select a Kit`. This will allow you to run the tests from the "Testing" tab, and run the performance utility from the "CMake" tab.
 
 # Performance Utility
 
